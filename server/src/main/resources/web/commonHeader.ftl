@@ -7,10 +7,10 @@
      * 初始化水印
      */
     function initWaterMark() {
-        let watermarkTxt = '${watermarkTxt}';
+        let watermarkTxt = '${watermarkTxt?js_string}';
         if (watermarkTxt !== '') {
             watermark.init({
-                watermark_txt: '${watermarkTxt}',
+                watermark_txt: watermarkTxt,
                 watermark_x: 0,
                 watermark_y: 0,
                 watermark_rows: 0,

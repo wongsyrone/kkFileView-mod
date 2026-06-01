@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1.0">
-    <title>xml文本预览</title>
+    <title>${file.name}</title>
     <#include  "*/commonHeader.ftl">
     <script src="js/jquery-3.6.1.min.js" type="text/javascript"></script>
     <link rel="stylesheet" href="bootstrap/css/bootstrap.min.css"/>

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8" />
-    <title>PDF图片预览</title>
+    <title>${file.name}</title>
     <#include "*/commonHeader.ftl">
     <script src="js/lazyload.js"></script>
     <style>

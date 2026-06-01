@@ -18,7 +18,7 @@
             height: 100%
         }
     </style>
-    <title>kkFileView Bpmn</title>
+    <title>${file.name}</title>
 </head>
 <body>
 
