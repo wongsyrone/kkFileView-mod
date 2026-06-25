@@ -253,11 +253,11 @@
 
             updateProgress(30);
             
-            // 使用异步方式加载
             await new Promise(resolve => setTimeout(resolve, 100)); // 给UI更新一点时间
-            
-            // 或者使用现有的同步方法，但放在setTimeout中避免阻塞
-            await transformWithTimeout(value, name);
+            var exportJson = await transformExcel(value, name);
+
+            updateProgress(80);
+            await createLuckysheet(exportJson);
             
             updateProgress(100);
             
@@ -274,104 +274,155 @@
         }
     }
 
-    // 使用setTimeout将同步任务拆分
-    function transformWithTimeout(value, name) {
+    function transformExcel(value, name) {
+        updateProgress(50);
+        if (!window.Worker) {
+            return transformOnMainThread(value, name);
+        }
+        return transformWithWorker(value, name).catch(function (error) {
+            console.warn('Excel Worker转换失败，降级到主线程:', error);
+            return transformOnMainThread(value, name);
+        });
+    }
+
+    function transformWithWorker(value, name) {
         return new Promise((resolve, reject) => {
-            updateProgress(50);
-            
-            // 将转换过程放在setTimeout中，避免阻塞主线程
-            setTimeout(() => {
-                try {
-                    LuckyExcel.transformExcelToLuckyByUrl(value, name, function(exportJson, luckysheetfile){
-                        if(exportJson.sheets==null || exportJson.sheets.length==0){
-                            reject(new Error("读取excel文件内容失败!"));
-                            return;
-                        }
-                        
-                        updateProgress(80);
-                        
-                        // 使用requestAnimationFrame来更新UI，避免阻塞
-                        requestAnimationFrame(() => {
-                            try {
-                                window.luckysheet.destroy();
-                                window.luckysheet.create({
-                                    container: 'luckysheet',
-                                    lang: "zh",
-                                    showtoolbarConfig:{
-                                        image: xlsxAllowEdit,
-                                        print: xlsxAllowEdit,
-                                        exportXlsx: xlsxAllowEdit,
-                                    },
-                                   allowCopy: xlsxAllowEdit, // 是否允许拷贝
-                showtoolbar: xlsxAllowEdit && xlsxShowToolbar,  // 是否显示工具栏
-                showinfobar: true, // 是否显示顶部信息栏
-                // myFolderUrl: "/",//作用：左上角<返回按钮的链接
-                showsheetbar: true, // 是否显示底部sheet页按钮
-                showstatisticBar: true, // 是否显示底部计数栏
-                sheetBottomConfig: xlsxAllowEdit, // sheet页下方的添加行按钮和回到顶部按钮配置
-                allowEdit: xlsxAllowEdit,// 是否允许前台编辑
-                enableAddRow: false, // 允许增加行
-                enableAddCol: false, // 允许增加列
-                userInfo: false, // 右上角的用户信息展示样式
-                showRowBar: true, // 是否显示行号区域
-                showColumnBar: false, // 是否显示列号区域
-                sheetFormulaBar: false, // 是否显示公式栏
-                enableAddBackTop: xlsxAllowEdit,//返回头部按钮
-                forceCalculation: false, //下面是导出插件 默认关闭
-                cellRightClickConfig: {
-                    copy: xlsxAllowEdit,
-                    copyAs: xlsxAllowEdit,
-                    paste: xlsxAllowEdit,
-                    insertRow: xlsxAllowEdit,
-                    insertColumn: xlsxAllowEdit,
-                    deleteRow: xlsxAllowEdit,
-                    deleteColumn: xlsxAllowEdit,
-                    deleteCell: xlsxAllowEdit,
-                    hideRow: xlsxAllowEdit,
-                    hideColumn: xlsxAllowEdit,
-                    rowHeight: xlsxAllowEdit,
-                    columnWidth: xlsxAllowEdit,
-                    clear: xlsxAllowEdit,
-                    matrix: xlsxAllowEdit,
-                    sort: xlsxAllowEdit,
-                    filter: xlsxAllowEdit,
-                    chart: xlsxAllowEdit,
-                    image: xlsxAllowEdit,
-                    link: xlsxAllowEdit,
-                    data: xlsxAllowEdit,
-                    cellFormat: xlsxAllowEdit
-                },
-                sheetRightClickConfig: {
-                    delete: xlsxAllowEdit,
-                    copy: xlsxAllowEdit,
-                    rename: xlsxAllowEdit,
-                    color: xlsxAllowEdit,
-                    hide: xlsxAllowEdit,
-                    move: xlsxAllowEdit
-                },
-                                    data: exportJson.sheets,
-                                    title: exportJson.info.name,
-                                    userInfo: exportJson.info.name.creator,
-                                    // 添加加载完成的回调
-                                    hook: {
-                                        workbookCreateAfter: function() {
-                                            resolve();
-                                        }
-                                    }
-                                });
-                                
-                                updateProgress(90);
-                                
-                            } catch (err) {
-                                reject(err);
-                            }
-                        });
-                    });
-                    
-                } catch (error) {
-                    reject(error);
+            var worker;
+            try {
+                worker = new Worker('xlsx/luckyexcel-worker.js');
+            } catch (error) {
+                reject(error);
+                return;
+            }
+
+            var settled = false;
+
+            function finish(callback, value) {
+                if (settled) {
+                    return;
                 }
-            }, 100);
+                settled = true;
+                worker.terminate();
+                callback(value);
+            }
+
+            worker.onmessage = function (event) {
+                var data = event.data || {};
+                if (data.type === 'success') {
+                    finish(resolve, data.exportJson);
+                    return;
+                }
+                if (data.type === 'error') {
+                    finish(reject, new Error(data.message || 'Excel转换失败'));
+                }
+            };
+
+            worker.onerror = function (error) {
+                finish(reject, error);
+            };
+
+            worker.postMessage({
+                url: value,
+                name: name
+            });
+        });
+    }
+
+    function transformOnMainThread(value, name) {
+        return new Promise((resolve, reject) => {
+            try {
+                LuckyExcel.transformExcelToLuckyByUrl(value, name, function(exportJson, luckysheetfile) {
+                    if (!exportJson || !exportJson.sheets || exportJson.sheets.length === 0) {
+                        reject(new Error("读取excel文件内容失败!"));
+                        return;
+                    }
+                    resolve(exportJson);
+                }, function(error) {
+                    reject(error);
+                });
+            } catch (error) {
+                reject(error);
+            }
+        });
+    }
+
+    function createLuckysheet(exportJson) {
+        return new Promise((resolve, reject) => {
+            requestAnimationFrame(() => {
+                try {
+                    window.luckysheet.destroy();
+                    window.luckysheet.create({
+                        container: 'luckysheet',
+                        lang: "zh",
+                        showtoolbarConfig:{
+                            image: xlsxAllowEdit,
+                            print: xlsxAllowEdit,
+                            exportXlsx: xlsxAllowEdit,
+                        },
+                        allowCopy: xlsxAllowEdit, // 是否允许拷贝
+                        showtoolbar: xlsxAllowEdit && xlsxShowToolbar,  // 是否显示工具栏
+                        showinfobar: true, // 是否显示顶部信息栏
+                        // myFolderUrl: "/",//作用：左上角<返回按钮的链接
+                        showsheetbar: true, // 是否显示底部sheet页按钮
+                        showstatisticBar: true, // 是否显示底部计数栏
+                        sheetBottomConfig: xlsxAllowEdit, // sheet页下方的添加行按钮和回到顶部按钮配置
+                        allowEdit: xlsxAllowEdit,// 是否允许前台编辑
+                        enableAddRow: false, // 允许增加行
+                        enableAddCol: false, // 允许增加列
+                        userInfo: false, // 右上角的用户信息展示样式
+                        showRowBar: true, // 是否显示行号区域
+                        showColumnBar: false, // 是否显示列号区域
+                        sheetFormulaBar: false, // 是否显示公式栏
+                        enableAddBackTop: xlsxAllowEdit,//返回头部按钮
+                        forceCalculation: false, //下面是导出插件 默认关闭
+                        cellRightClickConfig: {
+                            copy: xlsxAllowEdit,
+                            copyAs: xlsxAllowEdit,
+                            paste: xlsxAllowEdit,
+                            insertRow: xlsxAllowEdit,
+                            insertColumn: xlsxAllowEdit,
+                            deleteRow: xlsxAllowEdit,
+                            deleteColumn: xlsxAllowEdit,
+                            deleteCell: xlsxAllowEdit,
+                            hideRow: xlsxAllowEdit,
+                            hideColumn: xlsxAllowEdit,
+                            rowHeight: xlsxAllowEdit,
+                            columnWidth: xlsxAllowEdit,
+                            clear: xlsxAllowEdit,
+                            matrix: xlsxAllowEdit,
+                            sort: xlsxAllowEdit,
+                            filter: xlsxAllowEdit,
+                            chart: xlsxAllowEdit,
+                            image: xlsxAllowEdit,
+                            link: xlsxAllowEdit,
+                            data: xlsxAllowEdit,
+                            cellFormat: xlsxAllowEdit
+                        },
+                        sheetRightClickConfig: {
+                            delete: xlsxAllowEdit,
+                            copy: xlsxAllowEdit,
+                            rename: xlsxAllowEdit,
+                            color: xlsxAllowEdit,
+                            hide: xlsxAllowEdit,
+                            move: xlsxAllowEdit
+                        },
+                        data: exportJson.sheets,
+                        title: exportJson.info.name,
+                        userInfo: exportJson.info.name.creator,
+                        // 添加加载完成的回调
+                        hook: {
+                            workbookCreateAfter: function() {
+                                resolve();
+                            }
+                        }
+                    });
+
+                    updateProgress(90);
+                    
+                } catch (err) {
+                    reject(err);
+                }
+            });
         });
     }
 
