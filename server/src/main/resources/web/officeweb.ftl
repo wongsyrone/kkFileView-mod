@@ -23,6 +23,9 @@
      */
     function initWaterMark() {
         let watermarkTxt = '${watermarkTxt?js_string}';
+        let watermarkFont = '${watermarkFont?js_string}';
+        let watermarkFontsize = '${watermarkFontsize?js_string}';
+        let watermarkColor = '${watermarkColor?js_string}';
         if (watermarkTxt !== '') {
             watermark.init({
                 watermark_txt: watermarkTxt,
@@ -32,9 +35,9 @@
                 watermark_cols: 0,
                 watermark_x_space: ${watermarkXSpace},
                 watermark_y_space: ${watermarkYSpace},
-                watermark_font: '${watermarkFont}',
-                watermark_fontsize: '${watermarkFontsize}',
-                watermark_color: '${watermarkColor}',
+                watermark_font: watermarkFont,
+                watermark_fontsize: watermarkFontsize,
+                watermark_color: watermarkColor,
                 watermark_alpha: ${watermarkAlpha},
                 watermark_width: ${watermarkWidth},
                 watermark_height: ${watermarkHeight},
@@ -244,7 +247,7 @@
             initWaterMark();
             
             const value = url;
-            const name = '${file.name}';
+            const name = '${file.name?js_string}';
             
             if (!value) {
                 showError('文件URL为空');

@@ -65,11 +65,9 @@
         try {
             bindReadonlySpreadsheetGuards(frame.contentDocument || frame.contentWindow.document);
         } catch (error) {
-            // Cross-origin content cannot be modified; parent-level guards still apply.
+            // Same-origin preview content can be locked through the iframe document.
         }
     }
-
-    bindReadonlySpreadsheetGuards(document);
     </#if>
     /**
      * 页面变化调整高度
