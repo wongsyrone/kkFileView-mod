@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>CADViewer - 中文界面</title>
+    <title>${file.name}</title>
     <meta charset="utf-8">
        <#include "*/commonHeader.ftl">
     <!-- 核心样式 - 精简版本 -->

@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8" />
-    <title>${file.name}预览</title>
+    <title>${file.name}</title>
     <link rel='stylesheet' href='xlsx/plugins/css/pluginsCss.css' />
     <link rel='stylesheet' href='xlsx/plugins/plugins.css' />
     <link rel='stylesheet' href='xlsx/css/luckysheet.css' />
@@ -22,10 +22,10 @@
      * 初始化水印
      */
     function initWaterMark() {
-        let watermarkTxt = '${watermarkTxt}';
+        let watermarkTxt = '${watermarkTxt?js_string}';
         if (watermarkTxt !== '') {
             watermark.init({
-                watermark_txt: '${watermarkTxt}',
+                watermark_txt: watermarkTxt,
                 watermark_x: 0,
                 watermark_y: 0,
                 watermark_rows: 0,

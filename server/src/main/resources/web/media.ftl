@@ -2,7 +2,7 @@
 <html>
 	<head>
 		<meta charset="UTF-8">
-		<title>${file.name}播放器</title>
+		<title>${file.name}</title>
 		<link type="text/css" rel="stylesheet" href="ckplayer/css/ckplayer.css" />
 		<#if "${file.suffix?lower_case}" == "m3u8" >
 		<script type="text/javascript" src="ckplayer/hls.js/hls.min.js"></script>
