@@ -271,7 +271,10 @@ public class FileHandlerService {
             // 处理逻辑：抛出异常、记录日志、返回错误等
             throw new IllegalArgumentException("文件名超过系统限制");
         }
-        boolean isHtmlView = suffix.equalsIgnoreCase("xls") || suffix.equalsIgnoreCase("xlsx") || suffix.equalsIgnoreCase("csv") || suffix.equalsIgnoreCase("xlsm") || suffix.equalsIgnoreCase("xlt") || suffix.equalsIgnoreCase("xltm") || suffix.equalsIgnoreCase("et") || suffix.equalsIgnoreCase("ett") || suffix.equalsIgnoreCase("xlam");
+        String officePreviewType = req != null ? req.getParameter("officePreviewType") : null;
+        String resolvedOfficePreviewType = StringUtils.hasText(officePreviewType) ? officePreviewType : ConfigConstants.getOfficePreviewType();
+        boolean isSpreadsheet = suffix.equalsIgnoreCase("xls") || suffix.equalsIgnoreCase("xlsx") || suffix.equalsIgnoreCase("csv") || suffix.equalsIgnoreCase("xlsm") || suffix.equalsIgnoreCase("xlt") || suffix.equalsIgnoreCase("xltm") || suffix.equalsIgnoreCase("et") || suffix.equalsIgnoreCase("ett") || suffix.equalsIgnoreCase("xlam");
+        boolean isHtmlView = isSpreadsheet && "html".equalsIgnoreCase(resolvedOfficePreviewType);
         String cacheFilePrefixName = null;
         try {
             cacheFilePrefixName = originFileName.substring(0, originFileName.lastIndexOf(".")) + suffix + "."; //这里统一文件名处理 下面更具类型 各自添加后缀
@@ -293,7 +296,6 @@ public class FileHandlerService {
         attribute.setSuffix(suffix);
         attribute.setUrl(url);
         if (req != null) {
-            String officePreviewType = req.getParameter("officePreviewType");
             String forceUpdatedCache = req.getParameter("forceUpdatedCache");
             String usePasswordCache = req.getParameter("usePasswordCache");
             if (StringUtils.hasText(officePreviewType)) {
