@@ -292,7 +292,7 @@
         return new Promise((resolve, reject) => {
             var worker;
             try {
-                worker = new Worker('xlsx/luckyexcel-worker.js');
+                worker = new Worker('xlsx/luckyexcel-worker.js?v=' + Date.now());
             } catch (error) {
                 reject(error);
                 return;

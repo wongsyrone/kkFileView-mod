@@ -3,9 +3,20 @@
 
     var workerGlobal = self;
     workerGlobal.window = workerGlobal.window || workerGlobal;
-    workerGlobal.window.navigator = workerGlobal.window.navigator || workerGlobal.navigator || {userAgent: 'kkFileViewWorker'};
-    workerGlobal.window.devicePixelRatio = workerGlobal.window.devicePixelRatio || 1;
-    workerGlobal.window.ActiveXObject = undefined;
+    if (!workerGlobal.window.navigator) {
+        try {
+            Object.defineProperty(workerGlobal.window, 'navigator', {
+                value: {userAgent: 'kkFileViewWorker'},
+                configurable: true
+            });
+        } catch (ignore) {
+        }
+    }
+    try {
+        workerGlobal.window.devicePixelRatio = workerGlobal.window.devicePixelRatio || 1;
+        workerGlobal.window.ActiveXObject = undefined;
+    } catch (ignore) {
+    }
 
     importScripts('./luckyexcel.umd.js');
 
