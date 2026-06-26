@@ -27,15 +27,27 @@
         });
     }
 
+    function postProgress(loaded, total) {
+        workerGlobal.postMessage({
+            type: 'progress',
+            loaded: loaded || 0,
+            total: total || 0
+        });
+    }
+
     function readArrayBufferByXhr(url, resolve, reject) {
         var xhr = new workerGlobal.XMLHttpRequest();
         xhr.open('GET', url, true);
         xhr.responseType = 'arraybuffer';
+        xhr.onprogress = function (event) {
+            postProgress(event.loaded, event.lengthComputable ? event.total : 0);
+        };
         xhr.onreadystatechange = function () {
             if (xhr.readyState !== 4) {
                 return;
             }
             if (xhr.status === 200 || xhr.status === 0) {
+                postProgress(xhr.response ? xhr.response.byteLength : 0, xhr.response ? xhr.response.byteLength : 0);
                 resolve(xhr.response);
             } else {
                 reject(new Error('Ajax error for ' + url + ' : ' + xhr.status + ' ' + xhr.statusText));
@@ -61,7 +73,10 @@
                         }
                         return response.arrayBuffer();
                     })
-                    .then(resolve)
+                    .then(function (buffer) {
+                        postProgress(buffer ? buffer.byteLength : 0, buffer ? buffer.byteLength : 0);
+                        resolve(buffer);
+                    })
                     .catch(reject);
                 return;
             }
@@ -96,6 +111,10 @@
         readArrayBuffer(url)
             .then(function (buffer) {
                 var excelFile = createExcelFile(buffer, name);
+                workerGlobal.postMessage({
+                    type: 'stage',
+                    message: '正在转换Excel文件...'
+                });
                 LuckyExcel.transformExcelToLucky(
                     excelFile,
                     function (exportJson) {
