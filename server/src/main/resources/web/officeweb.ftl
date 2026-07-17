@@ -368,7 +368,7 @@
                         },
                         allowCopy: xlsxAllowEdit, // 是否允许拷贝
                 showtoolbar: xlsxAllowEdit && xlsxShowToolbar,  // 是否显示工具栏
-                showinfobar: true, // 是否显示顶部信息栏
+                showinfobar: false, // 是否显示顶部信息栏
                 // myFolderUrl: "/",//作用：左上角<返回按钮的链接
                 showsheetbar: true, // 是否显示底部sheet页按钮
                 showstatisticBar: true, // 是否显示底部计数栏
