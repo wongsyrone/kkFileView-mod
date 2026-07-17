@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8" />
-<title>${file.name}预览</title>
+<title>${file.name}</title>
 <#include "*/commonHeader.ftl">
 <link rel="stylesheet" href="xspreadsheet/xspreadsheet.css"/>
 <script src="xspreadsheet/xspreadsheet.js"></script>

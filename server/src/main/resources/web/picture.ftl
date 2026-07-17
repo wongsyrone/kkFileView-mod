@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8" />
-    <title>图片预览</title>
+    <title>${(file.name)!'图片预览'}</title>
     <#include "*/commonHeader.ftl">
     <link rel="stylesheet" href="css/viewer.min.css">
     <script src="js/viewer.min.js"></script>
