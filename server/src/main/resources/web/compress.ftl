@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>${file.name}压缩包预览</title>
+    <title>${file.name}</title>
     <script src="js/jquery-3.6.1.min.js"></script>
     <#include "*/commonHeader.ftl">
     <script src="js/base64.min.js" type="text/javascript"></script>
@@ -737,7 +737,7 @@
     var previewLoadingEl = document.getElementById("previewLoading");
 
     function isNotEmpty(value) {
-        return value !== null && value !== undefined && value !== "" && value !== 0 && !(value instanceof Array && value.length === 0) && !isNaN(value);
+        return value !== null && value !== undefined && value !== "" && !(value instanceof Array && value.length === 0);
     }
 
     function getQueryParam(url, param) {

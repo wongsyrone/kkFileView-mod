@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1.0">
-    <title>PDF预览</title>
+    <title>${file.name}</title>
     <#include "*/commonHeader.ftl">
     <script src="js/base64.min.js" type="text/javascript"></script>
     <style>
@@ -54,6 +54,9 @@
     }
     var viewerUrl = baseUrl + "pdfjs/web/viewer.html?file=" + encodeURIComponent(url);
 	var watermarkEncoded = encodeURIComponent('${watermarkTxt?js_string}');
+    var watermarkFontEncoded = encodeURIComponent('${watermarkFont?js_string}');
+    var watermarkColorEncoded = encodeURIComponent('${watermarkColor?js_string}');
+    var watermarkFontsizeEncoded = encodeURIComponent('${watermarkFontsize?js_string}');
     var highlightEncoded = encodeURIComponent('${highlightall?js_string}');
     viewerUrl += "&disablepresentationmode=${pdfPresentationModeDisable}";
     viewerUrl += "&disableopenfile=${pdfOpenFileDisable}";
@@ -62,6 +65,15 @@
     viewerUrl += "&disablebookmark=${pdfBookmarkDisable}";
     viewerUrl += "&disableediting=${pdfDisableEditing}";
     viewerUrl += "&watermarktxt=" + watermarkEncoded;
+    viewerUrl += "&watermarkxspace=${watermarkXSpace}";
+    viewerUrl += "&watermarkyspace=${watermarkYSpace}";
+    viewerUrl += "&watermarkfont=" + watermarkFontEncoded;
+    viewerUrl += "&watermarkfontsize=" + watermarkFontsizeEncoded;
+    viewerUrl += "&watermarkcolor=" + watermarkColorEncoded;
+    viewerUrl += "&watermarkalpha=${watermarkAlpha}";
+    viewerUrl += "&watermarkwidth=${watermarkWidth}";
+    viewerUrl += "&watermarkheight=${watermarkHeight}";
+    viewerUrl += "&watermarkangle=${watermarkAngle}";
     viewerUrl += "&pdfhighlightall=" + highlightEncoded;
     viewerUrl += "#page=${page}";   // ?c 确保数字不包含千位分隔符
 <#if "true" == pdfSidebarOpen>

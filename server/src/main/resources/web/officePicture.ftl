@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8" />
-    <title>${file.name}图片预览</title>
+    <title>${file.name}</title>
     <#include "*/commonHeader.ftl">
     <link rel="stylesheet" href="css/officePicture.css"/>
 </head>
@@ -166,14 +166,13 @@
      
      function lazyLoad() {
          var seeHeight = document.documentElement.clientHeight;
-         var scrollTop = document.body.scrollTop || document.documentElement.scrollTop;
          
          for (var i = n; i < len; i++) {
              var rect = aImg[i].getBoundingClientRect();
              var top = rect.top;
              
              // 如果图片进入可视区域或附近区域
-             if (top < seeHeight + scrollTop + 500) {
+             if (top < seeHeight + 500) {
                  var src = aImg[i].getAttribute('guoyu-src');
                  if (src && aImg[i].src.includes('loading.gif')) {
                      aImg[i].src = src;
@@ -201,31 +200,11 @@
          }
      }, 300);
      
-     window.onscroll = function() {
-         lazyLoad();
-         initWaterMark();
-     };
+     window.addEventListener('scroll', lazyLoad);
      
      // 初始加载一次
      lazyLoad();
  }
- 
- var aImg = document.querySelectorAll('.my-photo');
- var len = aImg.length;
- var n = 0;
- window.onscroll = function() {
-     var seeHeight = document.documentElement.clientHeight-30;
-     var scrollTop = document.body.scrollTop || document.documentElement.scrollTop;
-     for (var i = n; i < len; i++) {
-        var rect = aImg[i].getBoundingClientRect();
-        var top = rect.top;
-         if (top < seeHeight + scrollTop) {
-              aImg[i].src = aImg[i].getAttribute('guoyu-src');
-             n = i + 1;
-         }
-     }
-     initWaterMark();
- };
  
  function changePreviewType(previewType) {
      var url = window.location.href;

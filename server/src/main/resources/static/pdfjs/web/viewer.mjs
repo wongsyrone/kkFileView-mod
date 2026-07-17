@@ -1,5 +1,6 @@
 var kkhighlightAll;
 var watermarkTxt;
+var watermarkOptions;
 const queryString = document.location.search.substring(1);
 const params = (0, parseQueryString)(queryString);
 
@@ -13,6 +14,59 @@ if (kkpdfAutoFetch == "true") {
 function isNotEmpty(value) {
   return value !== null && value !== undefined && value !== '' && value !== 'false' ;
 }
+
+function readWatermarkNumber(name, fallback) {
+    const value = params.get(name);
+    if (!isNotEmpty(value)) {
+        return fallback;
+    }
+    const number = Number(value);
+    return Number.isFinite(number) ? number : fallback;
+}
+
+function readWatermarkText(name, fallback) {
+    const value = params.get(name);
+    return isNotEmpty(value) ? value : fallback;
+}
+
+function readWatermarkOptions() {
+    return {
+        start_x: readWatermarkNumber("watermarkx", 0),
+        start_y: readWatermarkNumber("watermarky", 0),
+        x_space: readWatermarkNumber("watermarkxspace", 10),
+        y_space: readWatermarkNumber("watermarkyspace", 10),
+        color: readWatermarkText("watermarkcolor", "black"),
+        alpha: readWatermarkNumber("watermarkalpha", 0.2),
+        fontsize: readWatermarkText("watermarkfontsize", "18px"),
+        font: readWatermarkText("watermarkfont", "微软雅黑"),
+        width: readWatermarkNumber("watermarkwidth", 240),
+        height: readWatermarkNumber("watermarkheight", 80),
+        angle: readWatermarkNumber("watermarkangle", 10)
+    };
+}
+
+function getWatermarkLines(text) {
+    return String(text || "")
+        .replace(/\\r\\n/g, "\n")
+        .replace(/\\n/g, "\n")
+        .replace(/\\r/g, "\n")
+        .replace(/\r\n/g, "\n")
+        .replace(/\r/g, "\n")
+        .split("\n");
+}
+
+function getWatermarkFontSize(fontsize) {
+    const size = Number.parseFloat(String(fontsize || "").replace(/px$/i, ""));
+    return Number.isFinite(size) ? size : 18;
+}
+
+function appendWatermarkLines(container, lines) {
+    lines.forEach(lineText => {
+        const line = document.createElement("div");
+        line.appendChild(document.createTextNode(lineText));
+        container.appendChild(line);
+    });
+}
 /**
  * 通用水印生成函数
  * @param {HTMLElement} container   - 水印容器（相对定位的父元素）
@@ -24,19 +78,14 @@ function addWatermark(container, watermarkTxt, explicitWidth = null, explicitHei
     if (!isNotEmpty(watermarkTxt)) return;
 
     // 公共配置
-    const settings = {
-        start_x: 80,
-        start_y: 80,
-        x_space: 80,
-        y_space: 80,
-        color: 'black',
-        alpha: 0.2,
-        fontsize: '18px',
-        font: '微软雅黑',
-        width: 200,
-        height: 80,
-        angle: 30
-    };
+    const settings = watermarkOptions || readWatermarkOptions();
+    const lines = getWatermarkLines(watermarkTxt);
+    const fontSize = getWatermarkFontSize(settings.fontsize);
+    const lineHeight = Math.ceil(fontSize * 1.35);
+    const watermarkWidth = Math.max(settings.width, 1);
+    const watermarkHeight = Math.max(settings.height, lineHeight * Math.max(lines.length, 1), 1);
+    const stepX = Math.max(watermarkWidth + settings.x_space, 1);
+    const stepY = Math.max(watermarkHeight + settings.y_space, 1);
 
     // 确定实际使用的宽高
     let pageWidth, pageHeight;
@@ -49,17 +98,25 @@ function addWatermark(container, watermarkTxt, explicitWidth = null, explicitHei
         pageHeight = rect.height;
     }
 
-    let maxX = pageWidth - settings.width;
-    let maxY = pageHeight - settings.height;
-    maxX = Math.max(maxX, 250);
-    maxY = Math.max(maxY, 250);
+    Array.from(container.children).forEach(child => {
+        if (child.classList && child.classList.contains("kk-pdf-watermark")) {
+            child.remove();
+        }
+    });
+    if (getComputedStyle(container).position === "static") {
+        container.style.position = "relative";
+    }
 
+    const edgeX = Math.max(settings.start_x, settings.x_space);
+    const edgeY = Math.max(settings.start_y, settings.y_space);
+    const maxX = Math.max(pageWidth - watermarkWidth - edgeX, edgeX);
+    const maxY = Math.max(pageHeight - watermarkHeight - edgeY, edgeY);
     const fragment = document.createDocumentFragment();
-    for (let x = settings.start_x; x < maxX; x += settings.x_space) {
-        for (let y = settings.start_y; y < maxY; y += settings.y_space) {
+    for (let x = edgeX; x <= maxX; x += stepX) {
+        for (let y = edgeY; y <= maxY; y += stepY) {
             const div = document.createElement('div');
-            div.className = 'mask_div';
-            div.appendChild(document.createTextNode(watermarkTxt));
+            div.className = 'mask_div kk-pdf-watermark';
+            appendWatermarkLines(div, lines);
             div.style.cssText = `
                 filter: progid:DXImageTransform.Microsoft.Alpha(opacity=${settings.alpha * 100});
                 transform: rotate(-${settings.angle}deg);
@@ -75,9 +132,15 @@ function addWatermark(container, watermarkTxt, explicitWidth = null, explicitHei
                 font-family: ${settings.font};
                 color: ${settings.color};
                 text-align: center;
-                width: ${settings.width}px;
-                height: ${settings.height}px;
-                display: block;
+                width: ${watermarkWidth}px;
+                height: ${watermarkHeight}px;
+                line-height: ${lineHeight}px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                white-space: pre-line;
+                word-break: break-all;
             `;
             fragment.appendChild(div);
         }
@@ -22070,6 +22133,7 @@ const PDFViewerApplication = {
     disableEditing = params.get("disableediting") ?? 'false';
     kkhighlightAll = params.get("pdfhighlightall") ?? 'false';
     watermarkTxt= params.get('watermarktxt') ?? 'false';
+    watermarkOptions = readWatermarkOptions();
     try {
       file = new URL(file).href;
     } catch {

@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8" />
-    <title>${file.name}预览</title>
+    <title>${file.name}</title>
     <link rel='stylesheet' href='xlsx/plugins/css/pluginsCss.css' />
     <link rel='stylesheet' href='xlsx/plugins/plugins.css' />
     <link rel='stylesheet' href='xlsx/css/luckysheet.css' />
@@ -22,19 +22,22 @@
      * 初始化水印
      */
     function initWaterMark() {
-        let watermarkTxt = '${watermarkTxt}';
+        let watermarkTxt = '${watermarkTxt?js_string}';
+        let watermarkFont = '${watermarkFont?js_string}';
+        let watermarkFontsize = '${watermarkFontsize?js_string}';
+        let watermarkColor = '${watermarkColor?js_string}';
         if (watermarkTxt !== '') {
             watermark.init({
-                watermark_txt: '${watermarkTxt}',
+                watermark_txt: watermarkTxt,
                 watermark_x: 0,
                 watermark_y: 0,
                 watermark_rows: 0,
                 watermark_cols: 0,
                 watermark_x_space: ${watermarkXSpace},
                 watermark_y_space: ${watermarkYSpace},
-                watermark_font: '${watermarkFont}',
-                watermark_fontsize: '${watermarkFontsize}',
-                watermark_color: '${watermarkColor}',
+                watermark_font: watermarkFont,
+                watermark_fontsize: watermarkFontsize,
+                watermark_color: watermarkColor,
                 watermark_alpha: ${watermarkAlpha},
                 watermark_width: ${watermarkWidth},
                 watermark_height: ${watermarkHeight},
@@ -213,7 +216,7 @@
             initWaterMark();
 
             const value = url;
-            const name = '${file.name}';
+            const name = '${file.name?js_string}';
 
             if (!value) {
                 showError('文件URL为空');
