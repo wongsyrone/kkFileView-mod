@@ -291,7 +291,7 @@
 
             let worker;
             try {
-                worker = new Worker('xlsx/luckyexcel-worker.js');
+                worker = new Worker('xlsx/luckyexcel-worker.js?v=' + Date.now());
             } catch (error) {
                 transformOnMainThread(value, name, resolve, reject);
                 return;
