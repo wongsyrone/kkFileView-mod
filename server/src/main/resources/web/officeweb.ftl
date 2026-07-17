@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8" />
-    <title>${file.name}预览</title>
+    <title>${file.name}</title>
     <link rel='stylesheet' href='xlsx/plugins/css/pluginsCss.css' />
     <link rel='stylesheet' href='xlsx/plugins/plugins.css' />
     <link rel='stylesheet' href='xlsx/css/luckysheet.css' />
@@ -22,19 +22,25 @@
      * 初始化水印
      */
     function initWaterMark() {
-        let watermarkTxt = '${watermarkTxt!''}';
+        // 上游 c4e1929e/45d7e346：officeweb.ftl 不 include commonHeader.ftl，属性缺失时必须回退到缺省值，
+        // 且缺省值用字符串字面量，避免 FreeMarker 按 locale 格式化数字（de_DE 的 0,2 会让内联脚本直接语法错误）。
+        // 本地：先补缺省值再按 JavaScript 字符串上下文转义（?js_string），水印文案含引号/换行时不破页。
+        let watermarkTxt = '${(watermarkTxt!'')?js_string}';
+        let watermarkFont = '${(watermarkFont!'微软雅黑')?js_string}';
+        let watermarkFontsize = '${(watermarkFontsize!'18px')?js_string}';
+        let watermarkColor = '${(watermarkColor!'black')?js_string}';
         if (watermarkTxt !== '') {
             watermark.init({
-                watermark_txt: '${watermarkTxt!''}',
+                watermark_txt: watermarkTxt,
                 watermark_x: 0,
                 watermark_y: 0,
                 watermark_rows: 0,
                 watermark_cols: 0,
                 watermark_x_space: ${watermarkXSpace!'10'},
                 watermark_y_space: ${watermarkYSpace!'10'},
-                watermark_font: '${watermarkFont!'微软雅黑'}',
-                watermark_fontsize: '${watermarkFontsize!'18px'}',
-                watermark_color: '${watermarkColor!'black'}',
+                watermark_font: watermarkFont,
+                watermark_fontsize: watermarkFontsize,
+                watermark_color: watermarkColor,
                 watermark_alpha: ${watermarkAlpha!'0.2'},
                 watermark_width: ${watermarkWidth!'240'},
                 watermark_height: ${watermarkHeight!'80'},
@@ -213,7 +219,7 @@
             initWaterMark();
 
             const value = url;
-            const name = '${file.name}';
+            const name = '${file.name?js_string}';
 
             if (!value) {
                 showError('文件URL为空');
