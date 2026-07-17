@@ -178,7 +178,6 @@
 
 <p style="text-align:center;">
 <div id="button-area" style="display: none;">
-    <label><button onclick="tiaozhuan()">跳转HTML预览</button></label>
     <#if xlsxallowEdit>
     <button id="confirm-button" onclick="print()">打印</button>
     </#if>
@@ -187,13 +186,6 @@
 
 <script src="xlsx/luckyexcel.umd.js"></script>
 <script>
-    function tiaozhuan(){
-        var test = window.location.href;
-        test = test.replace(new RegExp("&officePreviewType=xlsx",("gm")),"");
-        test = test+'&officePreviewType=html';
-        window.location.href=test;
-    }
-
     var url = '${finalUrl?js_string}';
    	var kkagent = '${kkagent}';
     var baseUrl = '${baseUrl}'.endsWith('/') ? '${baseUrl}' : '${baseUrl}' + '/';
