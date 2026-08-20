@@ -9,6 +9,7 @@ import org.springframework.web.util.HtmlUtils;
 
 import java.io.File;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -64,11 +65,17 @@ public class KkFileUtils {
         if (fileName == null) {
             return false;
         }
-        // 文件名长度限制：255个字符（不包含路径）
-        int windowsMaxLength = 255;
-        if (fileName.length() > windowsMaxLength) {
-            System.err.println("文件名长度超过限制（255个字符）");
-            return false;
+        // 单个路径组件长度限制：Windows 按字符计，Linux 按 UTF-8 字节计
+        int maxLength = 255;
+        String[] pathComponents = fileName.replace('\\', '/').split("/");
+        for (String component : pathComponents) {
+            int componentLength = isWindows()
+                    ? component.length()
+                    : component.getBytes(StandardCharsets.UTF_8).length;
+            if (componentLength > maxLength) {
+                System.err.println("文件名长度超过限制（255）");
+                return false;
+            }
         }
         return true;
     }
