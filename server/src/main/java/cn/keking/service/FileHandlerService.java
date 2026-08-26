@@ -17,7 +17,6 @@ import org.springframework.util.StringUtils;
 import jakarta.servlet.http.HttpServletRequest;
 
 import java.io.*;
-import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -244,7 +243,7 @@ public class FileHandlerService {
         boolean isCompressFile = !ObjectUtils.isEmpty(compressFileKey);
         if (isCompressFile) {  //判断是否使用特定压缩包符号
             try {
-                originFileName = URLDecoder.decode(compressFilePath, uriEncoding);  //转义的文件名 解下出原始文件名
+                originFileName = UrlEncoderUtils.percentDecode(compressFilePath, uriEncoding);  //转义的文件名 解下出原始文件名
                 attribute.setSkipDownLoad(true);
             } catch (UnsupportedEncodingException e) {
                 logger.error("Failed to decode file name: {}", originFileName, e);
@@ -252,7 +251,7 @@ public class FileHandlerService {
         }
         if (UrlEncoderUtils.hasUrlEncoded(originFileName)) {  //判断文件名是否转义
             try {
-                originFileName = URLDecoder.decode(originFileName, uriEncoding);  //转义的文件名 解下出原始文件名
+                originFileName = UrlEncoderUtils.percentDecode(originFileName, uriEncoding);  //转义的文件名 解下出原始文件名
             } catch (UnsupportedEncodingException e) {
                 e.printStackTrace();
             }
@@ -267,6 +266,10 @@ public class FileHandlerService {
 
         }
         originFileName = KkFileUtils.htmlEscape(originFileName);  //文件名处理
+        if (!isCompressFile) {
+            // 压缩包内条目走的是与磁盘上已解压文件的精确路径匹配，不能截断；其余场景超长时保留扩展名做中间截断，避免误判为不可预览
+            originFileName = KkFileUtils.truncateFileNameKeepExtension(originFileName);
+        }
         if (!KkFileUtils.validateFileNameLength(originFileName)) {
             // 处理逻辑：抛出异常、记录日志、返回错误等
             throw new IllegalArgumentException("文件名超过系统限制");
