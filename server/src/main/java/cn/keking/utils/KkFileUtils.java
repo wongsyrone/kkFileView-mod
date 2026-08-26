@@ -10,6 +10,8 @@ import org.springframework.web.util.HtmlUtils;
 import java.io.File;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -73,11 +75,94 @@ public class KkFileUtils {
                     ? component.length()
                     : component.getBytes(StandardCharsets.UTF_8).length;
             if (componentLength > maxLength) {
-                System.err.println("文件名长度超过限制（255）");
+                System.err.println("文件名长度超过限制（255）：" + component);
                 return false;
             }
         }
         return true;
+    }
+
+    private static final int FILE_NAME_MAX_COMPONENT_LENGTH = 255;
+    private static final String TRUNCATE_MARKER_PREFIX = "~";
+    private static final String TRUNCATE_MARKER_SUFFIX = "~";
+    private static final int TRUNCATE_HASH_HEX_LENGTH = 8;
+
+    /**
+     * 对超过 {@link #FILE_NAME_MAX_COMPONENT_LENGTH} 的文件名做保留扩展名的中间截断，未超限的原样返回。
+     * 仅处理最后一段路径（basename），目录前缀不做改动；扩展名按最后一个"."之后的部分计算（与
+     * {@link #suffixFromFileName} 同一约定）。截断时插入基于原始文件名的短哈希标记，避免不同原始文件名
+     * 因头尾相同而截断后落到同一缓存路径/文件名上；始终保留头部与尾部内容，不会退化为纯哈希文件名。
+     * <p>
+     * 这里只是极少数场景（原始文件名解码后依然超长）的兜底：绝大多数"看起来超长"其实是 originFileName
+     * 还没走 {@link UrlEncoderUtils#percentDecode} 正确解码，那类问题在解码阶段就已经解决了。既然走到这里
+     * 的都是真实超长文件名这种罕见兜底场景，不需要按平台字节/Unicode 码点精确计算预算，用简单的字符截取
+     * + 收缩循环（按 {@link #validateFileNameLength} 同款的平台度量方式收紧）即可保证不超限。
+     *
+     * @param fileName 原始文件名（可能带路径）
+     * @return 未超限则原样返回；超限则返回 头部+哈希标记+尾部+扩展名 的截断结果
+     */
+    public static String truncateFileNameKeepExtension(String fileName) {
+        if (fileName == null || fileName.isEmpty()) {
+            return fileName;
+        }
+        int sepIdx = Math.max(fileName.lastIndexOf('/'), fileName.lastIndexOf('\\'));
+        String dir = sepIdx >= 0 ? fileName.substring(0, sepIdx + 1) : "";
+        String base = sepIdx >= 0 ? fileName.substring(sepIdx + 1) : fileName;
+
+        if (componentLength(base) <= FILE_NAME_MAX_COMPONENT_LENGTH) {
+            return fileName;
+        }
+
+        int dotIdx = base.lastIndexOf('.');
+        String namePart = dotIdx > 0 ? base.substring(0, dotIdx) : base;
+        String ext = dotIdx > 0 ? base.substring(dotIdx) : "";
+
+        String marker = TRUNCATE_MARKER_PREFIX + shortHash(base) + TRUNCATE_MARKER_SUFFIX;
+        int remaining = Math.max(FILE_NAME_MAX_COMPONENT_LENGTH - componentLength(ext) - componentLength(marker), 0);
+        int headLen = Math.min(namePart.length(), (remaining + 1) / 2);
+        int tailLen = Math.min(Math.max(namePart.length() - headLen, 0), remaining - headLen);
+
+        String head = namePart.substring(0, headLen);
+        String tail = tailLen > 0 ? namePart.substring(namePart.length() - tailLen) : "";
+
+        String result = head + marker + tail + ext;
+        // 按平台度量方式收缩到不超限；字符预算按字符数分配，非 Windows 下多字节字符可能一次分配偏多，
+        // 靠这个循环兜底收紧即可，不需要提前按字节精算
+        while (componentLength(result) > FILE_NAME_MAX_COMPONENT_LENGTH && (!head.isEmpty() || !tail.isEmpty())) {
+            if (!tail.isEmpty()) {
+                tail = tail.substring(1);
+            } else {
+                head = head.substring(0, head.length() - 1);
+            }
+            result = head + marker + tail + ext;
+        }
+        // 收缩可能让边界正好停在代理对中间，补一刀清理，避免留下半个 emoji
+        if (!head.isEmpty() && Character.isHighSurrogate(head.charAt(head.length() - 1))) {
+            head = head.substring(0, head.length() - 1);
+        }
+        if (!tail.isEmpty() && Character.isLowSurrogate(tail.charAt(0))) {
+            tail = tail.substring(1);
+        }
+
+        return dir + head + marker + tail + ext;
+    }
+
+    private static int componentLength(String s) {
+        return isWindows() ? s.length() : s.getBytes(StandardCharsets.UTF_8).length;
+    }
+
+    private static String shortHash(String s) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(s.getBytes(StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder(TRUNCATE_HASH_HEX_LENGTH);
+            for (int i = 0; i < TRUNCATE_HASH_HEX_LENGTH / 2; i++) {
+                sb.append(String.format("%02x", hash[i]));
+            }
+            return sb.toString();
+        } catch (NoSuchAlgorithmException e) {
+            return Integer.toHexString(s.hashCode());
+        }
     }
 
     /**
