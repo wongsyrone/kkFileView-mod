@@ -60,7 +60,12 @@ function configureWatermark(params) {
 function addWatermark(container, watermarkTxt, explicitWidth = null, explicitHeight = null) {
     if (!isNotEmpty(watermarkTxt)) return;
 
-    const settings = watermarkSettings;
+    // 浅拷贝一份配置，多行水印需要抬高生效高度，但不能污染全局 watermarkSettings
+    const settings = { ...watermarkSettings };
+    const lines = getWatermarkLines(watermarkTxt);
+    const lineHeight = Math.ceil(getWatermarkFontSize(settings.fontsize) * 1.35);
+    // 单行时 lineHeight 远小于配置高度，结果与配置高度一致，不改变原有单行水印行为
+    settings.height = Math.max(settings.height, lineHeight * lines.length);
 
     // 确定实际使用的宽高
     let pageWidth, pageHeight;
@@ -84,8 +89,12 @@ function addWatermark(container, watermarkTxt, explicitWidth = null, explicitHei
     for (let x = settings.start_x; x < maxX; x += xStep) {
         for (let y = settings.start_y; y < maxY; y += yStep) {
             const div = document.createElement('div');
-            div.className = 'mask_div';
-            div.appendChild(document.createTextNode(watermarkTxt));
+            div.className = 'mask_div kk-pdf-watermark';
+            lines.forEach(lineText => {
+                const line = document.createElement('div');
+                line.appendChild(document.createTextNode(lineText));
+                div.appendChild(line);
+            });
             div.style.filter = `progid:DXImageTransform.Microsoft.Alpha(opacity=${settings.alpha * 100})`;
             div.style.transform = `rotate(-${settings.angle}deg)`;
             div.style.visibility = 'visible';
@@ -102,11 +111,45 @@ function addWatermark(container, watermarkTxt, explicitWidth = null, explicitHei
             div.style.textAlign = 'center';
             div.style.width = `${settings.width}px`;
             div.style.height = `${settings.height}px`;
-            div.style.display = 'block';
+            // 多行用 flex 纵向居中；单行时等价于原来的 block 居中
+            div.style.lineHeight = `${lineHeight}px`;
+            div.style.display = 'flex';
+            div.style.flexDirection = 'column';
+            div.style.alignItems = 'center';
+            div.style.justifyContent = 'center';
             fragment.appendChild(div);
         }
     }
+    // 同一页面 div 会因缩放/重渲染重复调用本函数，先清掉旧水印，避免层层叠加
+    removeRenderedWatermarks(container);
+    if (getComputedStyle(container).position === 'static') {
+        container.style.position = 'relative';
+    }
     container.appendChild(fragment);
+}
+
+/** 水印文字按换行拆成多行（兼容配置里写成 \n 的字面量） */
+function getWatermarkLines(text) {
+    return String(text || '')
+        .replace(/\\r\\n/g, "\n")
+        .replace(/\\n/g, "\n")
+        .replace(/\\r/g, "\n")
+        .replace(/\r\n/g, "\n")
+        .replace(/\r/g, "\n")
+        .split("\n");
+}
+
+function getWatermarkFontSize(fontsize) {
+    const size = Number.parseFloat(String(fontsize || '').replace(/px$/i, ''));
+    return Number.isFinite(size) ? size : 18;
+}
+
+function removeRenderedWatermarks(container) {
+    Array.from(container.children).forEach(child => {
+        if (child.classList && child.classList.contains('kk-pdf-watermark')) {
+            child.remove();
+        }
+    });
 }
 
 
