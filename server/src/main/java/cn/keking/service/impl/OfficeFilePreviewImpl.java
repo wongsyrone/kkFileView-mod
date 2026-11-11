@@ -235,6 +235,10 @@ public class OfficeFilePreviewImpl implements FilePreview {
             }
 
             if (imageUrls == null || imageUrls.isEmpty()) {
+                imageUrls = pdftojpgservice.pdf2jpg(outFilePath, outFilePath, fileAttribute);
+            }
+
+            if (imageUrls == null || imageUrls.isEmpty()) {
                 return otherFilePreview.notSupportedFile(model, fileAttribute, "Office转换缓存异常，请联系管理员");
             }
 
