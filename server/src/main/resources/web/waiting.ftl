@@ -34,9 +34,11 @@
       ${message}...
     </div>
 
+    <#if !(loadingPreview!false)>
     <div class="countdown-section">
       <p class="countdown-text">页面将在<span id="countdown">${time}</span>秒后自动刷新</p>
     </div>
+    </#if>
 
     <div class="controls">
       <button class="btn btn-primary" id="refreshBtn">立即刷新</button>
@@ -60,6 +62,34 @@
       <p style="margin-top: 5px;">如有问题，请联系技术支持</p>
     </div>
   </div><script>
+<#if loadingPreview!false>
+(() => {
+let loading = false;
+async function loadPreview() {
+    if (loading) return;
+    loading = true;
+    const button = document.getElementById('refreshBtn');
+    button.disabled = true;
+    try {
+        const response = await fetch(window.location.href, {
+            cache: 'no-store',
+            headers: {'X-KK-Preview-Loading': 'true'}
+        });
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        const html = await response.text();
+        document.open();
+        document.write(html);
+        document.close();
+    } catch (error) {
+        document.getElementById('message').textContent = '预览请求失败，请点击立即刷新重试：' + error.message;
+        loading = false;
+        button.disabled = false;
+    }
+}
+document.getElementById('refreshBtn').addEventListener('click', loadPreview);
+window.addEventListener('load', loadPreview);
+})();
+<#else>
 let countdown = ${time};
 let countdownInterval;
 
@@ -106,6 +136,7 @@ window.addEventListener('load', function() {
     // 然后开始倒计时
     startCountdown();
 });
+</#if>
 </script>
 </body>
 </html>

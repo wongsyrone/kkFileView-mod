@@ -95,7 +95,31 @@ public class OnlinePreviewController {
         if (ObjectUtils.isEmpty(fileUrl)) {
             return otherFilePreview.notSupportedFile(model, "非法路径,不允许访问");
         }
+        // 先绘制等待页，再请求实际预览，覆盖同步转换及缓存缺失时的补转。
+        if (!"true".equals(req.getHeader("X-KK-Preview-Loading")) && needsConversion(fileAttribute, fileUrl)) {
+            model.addAttribute("fileName", fileAttribute.getName());
+            model.addAttribute("message", "文件正在转换中，请稍候");
+            model.addAttribute("loadingPreview", true);
+            return FilePreview.WAITING_FILE_PREVIEW_PAGE;
+        }
         return filePreview.filePreviewHandle(fileUrl, model, fileAttribute);  //统一在这里处理 url
+    }
+
+    private static boolean needsConversion(FileAttribute file, String url) {
+        if (file.getType() == null) {
+            return false;
+        }
+        return switch (file.getType()) {
+            case OFFICE -> file.isHtmlView() || !"web".equalsIgnoreCase(ConfigConstants.getOfficeTypeWeb())
+                    || !("xlsx".equalsIgnoreCase(file.getSuffix()) || "csv".equalsIgnoreCase(file.getSuffix()));
+            case PDF -> "image".equals(file.getOfficePreviewType()) || "allImages".equals(file.getOfficePreviewType());
+            case CAD, COMPRESS -> true;
+            case TIFF -> "jpg".equalsIgnoreCase(ConfigConstants.getTifPreviewType())
+                    || "pdf".equalsIgnoreCase(ConfigConstants.getTifPreviewType());
+            case MEDIACONVERT -> !url.regionMatches(true, 0, "http", 0, 4)
+                    || "true".equals(ConfigConstants.getMediaConvertDisable());
+            default -> false;
+        };
     }
 
     private static String normalizePage(String page) {
