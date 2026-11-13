@@ -118,8 +118,6 @@ eval(function(p,a,c,k,e,r){e=function(c){return(c<62?'':e(parseInt(c/62)))+((c=c
             var startY;
             var cols;
             var rows;
-            var totalWidth;
-            var totalHeight;
             var rootNode;
             var fragment;
             var i;
@@ -158,16 +156,15 @@ eval(function(p,a,c,k,e,r){e=function(c){return(c<62?'':e(parseInt(c/62)))+((c=c
             rows = parseInt(settings.watermark_rows, 10) || parseInt((pageHeight - startY) / (itemHeight + ySpace), 10);
             cols = Math.max(cols || 0, 1);
             rows = Math.max(rows || 0, 1);
-            totalWidth = startX + itemWidth * cols + xSpace * Math.max(cols - 1, 0);
-            totalHeight = startY + itemHeight * rows + ySpace * Math.max(rows - 1, 0);
             rootNode = createRoot(parent, settings);
             fragment = document.createDocumentFragment();
 
             for (i = 0; i < rows; i++) {
                 for (j = 0; j < cols; j++) {
                     var item = document.createElement('div');
-                    var x = startX + (pageWidth - totalWidth) / 2 + (itemWidth + xSpace) * j;
-                    var y = startY + (pageHeight - totalHeight) / 2 + (itemHeight + ySpace) * i;
+                    // Keep existing marks anchored when lazy-loaded content changes the page size.
+                    var x = startX + (itemWidth + xSpace) * j;
+                    var y = startY + (itemHeight + ySpace) * i;
                     if (parentNode) {
                         x += offsetLeft;
                         y += offsetTop;
